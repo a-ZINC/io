@@ -6,26 +6,25 @@
 #include <sys/socket.h>
 #include <thread>
 #include <unistd.h>
-#include <iostream>
 
 void handle_client(int client_fd) {
     char buffer[4096];
     while(true) {
-        int size = recv(client_fd, buffer, sizeof(buffer), 0);
-        if (size < 0) perror("recv!"); break;
-        if (size == 0) printf("Clean client close %d", client_fd); break;
-
+        ssize_t size = recv(client_fd, buffer, sizeof(buffer), 0);
+        if (size < 0) {perror("recv!"); break;}
+        if (size == 0) {printf("Clean client close %d\n", client_fd); break;}
         ssize_t total_size = 0;
         bool send_failed = false;
         while(total_size < size) {
             ssize_t send_size = send(client_fd, buffer + total_size, size - total_size, 0);
-            if (send_size < 0) perror("send!"); send_failed = true; break;
+            if (send_size < 0) { perror("send!"); send_failed = true; break; }
             total_size += send_size;
         }
         if (send_failed) {
             break;
         }
     }
+    printf("closed client: %d", client_fd);
     close(client_fd);
 }
 
@@ -66,7 +65,7 @@ int main(int argc, char** argv) {
         }
         char ip[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &client_addr.sin_addr, ip, INET_ADDRSTRLEN);
-        printf("client connected -> %s:%d\n", ip, ntohs(client_addr.sin_port));
+        printf("client connected -> %s:%d:%d\n", ip, ntohs(client_addr.sin_port), client_fd);
 
         std::thread(handle_client, client_fd).detach();
     }
